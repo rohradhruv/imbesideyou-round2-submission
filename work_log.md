@@ -66,3 +66,54 @@ Session 2 (yuvraj, full 2-chunk session, complete):
 - Accidentally committed the entire raw dataset (hundreds of files, ~10,000+ git objects) in early commits, discovered when a git push attempt hung uploading it
 - Fixed by resetting git history and adding a .gitignore excluding data/ before recommitting
 - Lesson: always set up .gitignore for large/raw data folders BEFORE the first commit, not after
+
+### Runtime/scalability issue found (Day 2)
+- Current per-event feature signal (one row per raw event, 2,641 rows for one session) made pen-tuning slow, and pen=1 was computationally impractical (multi-minute runtime)
+- Root cause: deviated from the original plan of time-windowed features (bucketing activity per fixed window) into per-event rows, which doesn't scale to "huge" Dataset B
+- Decision: redesign feature extraction to use fixed time-window bucketing (e.g., 5-sec windows) instead of per-event rows -- planned for Day 3, will both fix runtime and better match the "activity pattern" concept we're trying to detect
+
+### Pen tuning results (session ses_20260701-005920-yuvraj, 58 real boundaries)
+| pen | found | within 5 sec |
+|---|---|---|
+| 2 | 70 | 31/58 |
+| 3 | 53 | 30/58 |
+| 5 | 32 | 29/58 |
+| 8-10 | 3 | 2/58 |
+| 15-20 | 0 | 0/58 |
+
+- Chose pen=3: near-identical hit-rate to pen=2 (30 vs 31) but boundary count (53) much closer to ground truth (58) than pen=2's (70) -- pen=2 achieves similar accuracy mainly by over-guessing, a weaker method despite the marginally higher raw score
+- Sharp accuracy cliff between pen=5 and pen=8 -- useful range for this data is roughly 2-5
+
+### Runtime/scalability issue found (Day 2)
+- Current per-event feature signal (one row per raw event, 2,641 rows for one session) made pen-tuning slow, and pen=1 was computationally impractical (multi-minute runtime)
+- Root cause: deviated from the original plan of time-windowed features (bucketing activity per fixed window) into per-event rows, which doesn't scale to "huge" Dataset B
+- Decision: redesign feature extraction to use fixed time-window bucketing (e.g., 5-sec windows) instead of per-event rows -- planned for Day 3, will both fix runtime and better match the "activity pattern" concept we're trying to detect
+
+### Pen tuning results (session ses_20260701-005920-yuvraj, 58 real boundaries)
+| pen | found | within 5 sec |
+|---|---|---|
+| 2 | 70 | 31/58 |
+| 3 | 53 | 30/58 |
+| 5 | 32 | 29/58 |
+| 8-10 | 3 | 2/58 |
+| 15-20 | 0 | 0/58 |
+
+- Chose pen=3: near-identical hit-rate to pen=2 (30 vs 31) but boundary count (53) much closer to ground truth (58) than pen=2's (70) -- pen=2 achieves similar accuracy mainly by over-guessing, a weaker method despite the marginally higher raw score
+- Sharp accuracy cliff between pen=5 and pen=8 -- useful range for this data is roughly 2-5
+
+### Runtime/scalability issue found (Day 2)
+- Current per-event feature signal (one row per raw event, 2,641 rows for one session) made pen-tuning slow, and pen=1 was computationally impractical (multi-minute runtime)
+- Root cause: deviated from the original plan of time-windowed features (bucketing activity per fixed window) into per-event rows, which doesn't scale to "huge" Dataset B
+- Decision: redesign feature extraction to use fixed time-window bucketing (e.g., 5-sec windows) instead of per-event rows -- planned for Day 3, will both fix runtime and better match the "activity pattern" concept we're trying to detect
+
+### Pen tuning results (session ses_20260701-005920-yuvraj, 58 real boundaries)
+| pen | found | within 5 sec |
+|---|---|---|
+| 2 | 70 | 31/58 |
+| 3 | 53 | 30/58 |
+| 5 | 32 | 29/58 |
+| 8-10 | 3 | 2/58 |
+| 15-20 | 0 | 0/58 |
+
+- Chose pen=3: near-identical hit-rate to pen=2 (30 vs 31) but boundary count (53) much closer to ground truth (58) than pen=2's (70) -- pen=2 achieves similar accuracy mainly by over-guessing, a weaker method despite the marginally higher raw score
+- Sharp accuracy cliff between pen=5 and pen=8 -- useful range for this data is roughly 2-5
