@@ -61,3 +61,8 @@ Session 2 (yuvraj, full 2-chunk session, complete):
 - Try tuning PELT's pen parameter to see if accuracy improves
 - Test on 1-2 more sessions before considering the method validated
 - Still need to run the rule-based heuristic baseline for the promised comparison
+
+### Git hygiene issue found and fixed (Day 2)
+- Accidentally committed the entire raw dataset (hundreds of files, ~10,000+ git objects) in early commits, discovered when a git push attempt hung uploading it
+- Fixed by resetting git history and adding a .gitignore excluding data/ before recommitting
+- Lesson: always set up .gitignore for large/raw data folders BEFORE the first commit, not after
