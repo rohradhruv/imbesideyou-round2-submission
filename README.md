@@ -1,243 +1,121 @@
-# Intern Selection Task: From Operation Logs to an Automation Proposal
+# From Operation Logs to an Automation Proposal
 
-**Duration:** 7 days
-**Submission:** Full repository (including Git history) + final report
+This repository is my submission for the I'mbesideyou AI Engineer take-home. The work starts with continuous desktop-operation logs and ends with a working, review-first automation prototype. The objective was not to build the most complex model possible; it was to recover recurring work reliably enough to make a defensible automation decision.
 
----
+## Final outcome
 
-## Background
+The final selected workflow is **`process_003`: HR new-hire onboarding verification**. The prototype takes a case ID, retrieves structured mock case data, checks required onboarding items with deterministic rules, writes a reviewer-ready Word checklist and exception note, and appends an audit-log record. The reviewer remains responsible for the final complete, flag, or hold decision.
 
-You have been assigned as an FDE (Forward Deployed Engineer) to a client company.
+This was an evidence-driven choice. The highest-ranked cluster, `process_001`, was rejected after screenshot review showed finance adjustment, purchase-order, and contract-reference work mixed together. An earlier `process_002` hypothesis was rejected as fragmented navigation/click activity. After context cleanup, execution merging, and fresh screenshot review, final `process_003` was the strongest validated onboarding-review candidate.
 
-In this company's back-office departments (HR, Finance, Logistics, and others), staff
-spend their days moving back and forth between internal business systems and desktop
-applications such as Excel and Word, processing routine paperwork. For these employees,
-this kind of work continues all day long.
+## End-to-end approach
 
-The company already runs a desktop agent that collects PC operation logs from its staff.
-Every keystroke, click, and application switch is recorded in chronological order.
+```text
+Dataset A ground truth
+  -> stitch chunks and sort timestamps
+  -> develop and validate boundary detection
+  -> PELT anchors plus local supervised reranking
+  -> train final model on all Dataset A
 
-Management has one request:
-
-> **"Use these logs to tell us where automation would have the greatest impact on our
-> operations. And show us something that actually works."**
-
-However, what is recorded is only **operations**. Nothing in the log says
-"this person is now processing an expense claim" or "this is an onboarding procedure."
-The logs have been piling up untouched. Right now, nobody knows what work is being done,
-by whom, or how much time it takes.
-
----
-
-## Goal
-
-**Produce a proposal that maximizes the client's ROI, and demonstrate it with something
-that actually runs.**
-
-Technical accuracy is not the objective in itself. Your judgment is what is being
-assessed — including how you choose to spend your 7 days.
-
----
-
-## Provided Data
-
-See **`DATA_SCHEMA.md`** for the full data specification.
-
-### Dataset A (with ground truth / 63 sessions / ~162,000 events)
-
-```
-dataset_a/
-  ses_<date>-<time>-<machine>/
-    chunk_<date>-<time>-<machine>/
-      events.jsonl        <- raw operation log
-      manifest.json       <- chunk metadata
-      screenshots/        <- screen captures referenced by screenshot events
-    gt.jsonl              <- ground truth
-    gt_manifest.json      <- ground truth summary (per session)
+Dataset B without ground truth
+  -> segment raw events
+  -> extract application, page, title, and interaction signatures
+  -> cluster recurring patterns
+  -> merge compatible adjacent fragments into inferred executions
+  -> rank candidates and manually inspect screenshots
+  -> select a bounded automation target
+  -> run a review-first onboarding prototype
 ```
 
-`gt.jsonl` records when each business process started and ended.
-Use this dataset to build and validate your approach.
+## Why the final segmentation method was chosen
 
-Note that a single session may be split across multiple chunks. This is a property of
-how the agent records data — it is not an anomaly.
+Raw JSONL order could not be trusted for temporal analysis: one inspected sample had 87 out-of-order adjacent pairs out of 765. Sessions can also span multiple recorder chunks. Every session is therefore stitched and sorted by `timestamp_ms` before feature construction.
 
-### Dataset B (no ground truth / 15 sessions / ~20,000 events)
+PELT was the initial baseline because it offers a practical, interpretable way to identify behavior changes. It was not treated as a complete solution. I tested candidate union, voting, logistic-regression ranking, weighted fusion, a standalone rich classifier, and a two-second movement cap. These experiments either introduced too many false boundaries, lost recall through timestamp misalignment, or did not improve the main localization objective consistently.
 
+The final method keeps PELT as a high-recall anchor generator and uses a `HistGradientBoostingClassifier` to score nearby events from local timing, interaction, app-switch, clipboard, and sequence-change features. The best local event may replace the original PELT anchor. On a fixed 51-session development / 12-session holdout split of Dataset A, this improved F1 within five seconds from **0.358** to **0.466** while retaining comparable F1 within ten seconds (**0.589** to **0.593**).
+
+These scores are validation evidence, not the whole story. They measure timestamp proximity on Dataset A; they do not prove that Dataset B clusters have correct business meaning. That is why the Dataset B decision also required manual workflow reconstruction.
+
+## Dataset B process discovery and screenshot validation
+
+The final Dataset B run processed 15 sessions into 339 raw segmentation fragments. Clustering uses TF-IDF features derived from event types, application names, window titles, browser hosts, page routes, and interaction transitions. Because a technical boundary can split one business case into several pieces, only directly adjacent fragments with the same cluster and compatible page context are merged. This produced **264 inferred business executions**.
+
+Candidate ranking uses execution frequency, observed workload, actor breadth, consistency, and application stability. It is a transparent screening heuristic, not a claim of objective business value.
+
+For manual validation, `src/spot_check.py` sampled four occurrences per candidate across sessions, copied the screenshots that fell inside each segment interval, and generated an index showing interval, event pattern, and applications. I inspected samples from `process_001`, final `process_003`, and `process_004`. This review rejected mixed/noisy groups and established the HR portal plus Word-checklist pattern behind the final onboarding scope. A selected-cluster sample that crossed from purchase-order work into onboarding was recorded as boundary spillover; the prototype intentionally targets only the stable onboarding-review portion.
+
+## Why deterministic Python automation
+
+The selected boundary is structured retrieval, status checking, exception identification, and document generation. Deterministic Python rules were a better first implementation than an LLM agent, full RPA, or a workflow platform:
+
+| Option | Decision | Reason |
+|---|---|---|
+| Deterministic Python | Selected | Small, auditable, testable, and directly fits structured checks |
+| LLM agent | Deferred | No demonstrated need for probabilistic language reasoning; adds cost and hallucination risk |
+| Workflow platform | Deferred | Adds configuration overhead for a small local prototype |
+| Browser/RPA automation | Deferred | Production UI selectors and access were unavailable; business logic is more valuable to demonstrate first |
+
+An API adapter is preferred for a production system where an API exists; browser automation remains a possible integration choice where UI-only access is unavoidable.
+
+## Repository map
+
+- `src/segment.py` — Dataset A segmentation development and holdout evaluation.
+- `src/dataset_b_pipeline.py` — Dataset B inference, process recognition, clustering, and execution merging.
+- `src/filter_candidates.py` — minimum-frequency candidate screen.
+- `src/automation_candidate.py` — quantitative and manual candidate decision layer.
+- `src/spot_check.py` — screenshot sampling and evidence index generation.
+- `src/automation_prototype.py` — local onboarding-review prototype.
+- `outputs/` — required segments plus intermediate audit artifacts.
+- `prototype_output/` — generated checklists and audit log.
+- `FINAL_REPORT.md` / `FINAL_REPORT.docx` — full technical and business rationale.
+- `work_log.md` — day-by-day checklist of experiments, pivots, and results.
+
+## Reproduce
+
+Use Python 3.13 and install the pinned dependencies:
+
+```powershell
+python -m pip install -r requirements.txt
+python src\dataset_b_pipeline.py
+python src\filter_candidates.py
+python src\automation_candidate.py
+python src\spot_check.py process_001 process_003 process_004
+python src\automation_prototype.py
+python -m unittest discover -s tests -v
 ```
-dataset_b/
-  ses_<date>-<time>-<machine>/
-    chunk_<date>-<time>-<machine>/
-      events.jsonl        <- raw operation log
-      manifest.json       <- chunk metadata
-      screenshots/        <- screen captures referenced by screenshot events
-```
 
-**This is the production data you are asked to analyze.** There is no ground truth.
-It comes from different departments performing different work than Dataset A,
-and the applications in use are also different.
+The raw data must be available under `data/dataset_a` and `data/dataset_b`, or the provided nested dataset layout. Raw data is intentionally excluded from Git.
 
----
+For the separate Step 1 submission, upload `outputs/segments.jsonl` with the filename `segments.jsonl`.
 
-## Tasks
+## Limitations
 
-### Step 1 — Recover units of work from the logs
+- Dataset B has no ground-truth boundaries or authoritative process labels.
+- Observed Dataset B durations are comparative only because the test environment shortens waiting time.
+- The prototype uses mock source-system data and a generated Word template; it does not access a production HR system.
+- Production deployment requires authoritative HR rules, approved credentials, field mapping, API or UI integration, security review, and pilot measurement.
+- The prototype prepares evidence and exceptions; it does not make HR approval decisions.
 
-`events.jsonl` is simply a list of keystrokes, clicks, and application switches
-**in the order they occurred.** There are no markers saying "an expense claim started here"
-or "it ended here."
+## Required submission identity — complete before submitting
 
-Your task is to recover "one coherent unit of work" from this stream.
-In other words, **the goal of Step 1 is to segment a continuous sequence of events into
-individual executions of business processes.**
+- Full name: **Dhruv Rohra**
+- University: **Indian Institute of Technology Goa**
+- Department or major: **Electrical Engineering**
+- Round 1 email: **dhruv.kamal.24042@iitgoa.ac.in**
 
-#### What makes this difficult
+Keep the repository private and add only the collaborator accounts specified in the official company instructions.
 
-Real office workers do not behave the way a textbook would suggest.
+## Required private-repository collaborators
 
-- **Work is not contiguous.** A person switches to a different task partway through one,
-  then returns to it later
-- **The same process appears many times a day.** Different cases are processed
-  using the same procedure, over and over
-- **The same process does not always follow the same steps.** Depending on the case
-  and the conditions, the systems visited and the items checked will differ
-- **Operations unrelated to any business process are mixed in**
+Invite all of the following accounts after the private repository is pushed:
 
-#### How to proceed
+- yasuhironose@imbesideyou.world
+- mamindla@imbesideyou.world
+- jayeshahire@imbesideyou.world
+- ashwingaikwad@imbesideyou.world
+- namansolanki@imbesideyou.world
+- kushakjafry@imbesideyou.world
+- rajeevkumar@imbesideyou.world
 
-Start with Dataset A. Because A includes ground truth (`gt.jsonl`), **you can measure
-how correct your approach is.** How far you push accuracy — and what you consider
-"good enough" — is left to your judgment.
-
-For the output format, see the Deliverables section.
-
-### Step 2 — Analyze the work and identify automation candidates
-
-Apply your Step 1 approach to Dataset B, and analyze the operations based on its output.
-
-- What processes are performed, how often, and how much time do they consume?
-- How many people are involved?
-- Are there different handling patterns within the same process?
-
-Then, **propose which processes should be automated, in priority order.**
-Explain the reasoning behind that ordering.
-
-### Step 3 — Build an automation tool
-
-From the candidates identified in Step 2, build the one (or ones) you judge to have
-the greatest impact.
-
-The form your "automation tool" takes is up to you. Any of the following is acceptable,
-as are approaches not listed here:
-
-- An AI agent (for example, something like Copilot given a set of procedure definitions)
-- A workflow definition (n8n, Power Automate, etc.)
-- A deterministic script (Python, PowerShell, etc.)
-- A desktop application
-- A web application
-
-#### Consider feasibility when choosing
-
-An idea with large potential impact is worthless if it cannot be built. Before deciding
-what to target, assess the **overall development difficulty**. For example:
-
-- How would you access the data in the target system?
-- How complex is the business logic? How many decision branches are there?
-- What operational and governance constraints apply?
-- What risks would only surface once implementation begins?
-
-The information you can extract from the provided logs is limited.
-**We are looking at how well you can anticipate realistic risks from that limited
-information.** Proposals built purely on optimistic assumptions will not score well.
-
-#### Decide the number and scope yourself
-
-**We do not specify how many tools to build.** Whether you build one thing specialized
-for a single process, or a general mechanism that can be extended across several processes
-(for example, a shared foundation with per-process definitions) — **that decision is itself
-part of the ROI question.**
-
-A broadly applicable design has a higher ceiling, but delivers zero value if you cannot
-finish it. State clearly what you chose to cover, what you deferred to a later phase,
-and why.
-
-#### What your report must explain
-
-A working prototype is sufficient. Polish itself is not evaluated; judgment is.
-Your report must address the following four points:
-
-1. **Why you chose that process, and why that scope**
-2. **Why you chose that implementation form** — including why you rejected the alternatives
-3. **What manual work remains after deployment**, and what impact can realistically be expected
-4. **What risks you anticipate in implementation and rollout, and how you would address them**
-   — including what evidence led you to anticipate each risk
-
----
-
-## Deliverables
-
-1. **Step 1 output** — the result of applying your approach to Dataset B,
-   submitted as `segments.jsonl`
-
-   One JSON object per line:
-
-   ```json
-   {"session_id": "ses_20260701-183232-LAPTOP-76QMG9DE", "start": "2026-07-01T18:32:32Z", "end": "2026-07-01T18:35:41Z", "label": "expense_processing"}
-   ```
-
-   | Field | Description |
-   |---|---|
-   | `session_id` | The session directory name |
-   | `start` / `end` | Segment start and end time (ISO 8601, UTC) |
-   | `label` | Your own name for the process. **Use the same label for the same process** |
-
-   The label text itself is not evaluated — name them however you like.
-   What is evaluated is whether the boundaries between units of work are correct,
-   and whether the same process consistently receives the same label.
-
-2. **Full repository** — include your Git history (we review how the work progressed)
-
-3. **Final report** — must include:
-   - Your Step 2 analysis, the prioritized automation candidates, and the reasoning
-   - A description of what you built in Step 3, **why that process and scope**,
-     and **why that implementation form**
-   - **What manual work remains after deployment, and the impact you realistically expect**
-   - **Anticipated implementation and rollout risks, with your mitigation approach**
-   - How you allocated the 7 days, and why
-
-4. **Work log** — what you were thinking each day, what you tried, and what did not work
-
----
-
-## Notes and Constraints
-
-- **No ground truth is provided for Dataset B.** We will score your submission
-  after you submit it.
-- **The logs come from a Japanese company.** Screen text, business process names, and
-  application UI content are in Japanese. You are free to use translation tools or LLMs.
-- These logs were recorded in a test environment, so the waiting time within each
-  operation is shorter than in real production use. Judge candidates by comparing
-  processes against each other rather than by absolute figures.
-- Some events in `events.jsonl` (`text_input_complete`) are unreliably recorded.
-  Reconstruct from other events if you need that information.
-- **You are free to use generative AI.** Please record how you used it in your work log.
-- Any programming language or library is acceptable.
-
----
-
-## FAQ
-
-**Q. How accurate does Step 1 need to be?**
-A. We will not give you a threshold. Deciding what counts as "good enough" is part of
-the task.
-
-**Q. Does the Step 3 tool need to be production-ready?**
-A. No. A working prototype is sufficient.
-
-**Q. Will I score higher by building something technically sophisticated?**
-A. No. We evaluate the client's ROI. What matters is whether your technical choices
-fit the objective.
-
-**Q. I could not complete all three steps.**
-A. Record in your work log why you did not, and how you arrived at the decisions you made
-along the way.
+Submissions are accepted only through the official Round 2 Google Form. Confirm that the repository is private, collaborator invitations are sent, and the exact Round 1 email is used in both this README and the form.

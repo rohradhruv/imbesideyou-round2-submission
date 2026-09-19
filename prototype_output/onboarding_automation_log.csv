@@ -1,0 +1,17 @@
+timestamp,case_id,automation_recommendation,output_file,status,note
+2026-09-19T17:52:36,ONB-1001,READY FOR HUMAN COMPLETION,onboarding_review_ONB-1001.docx,generated_pending_human_review,All required onboarding items passed deterministic checks.
+2026-09-19T17:52:36,ONB-1002,HUMAN REVIEW REQUIRED,onboarding_review_ONB-1002.docx,generated_pending_human_review,Missing required evidence must be resolved before completion.
+2026-09-19T17:52:36,ONB-1003,HUMAN REVIEW REQUIRED,onboarding_review_ONB-1003.docx,generated_pending_human_review,A source-data conflict requires reviewer judgment before completion.
+2026-09-19T17:52:36,ONB-9999,N/A,-,failed,Unknown onboarding case ID.
+2026-09-19T17:55:20,ONB-1001,READY FOR HUMAN COMPLETION,onboarding_review_ONB-1001.docx,generated_pending_human_review,All required onboarding items passed deterministic checks.
+2026-09-19T17:55:20,ONB-1002,HUMAN REVIEW REQUIRED,onboarding_review_ONB-1002.docx,generated_pending_human_review,Missing required evidence must be resolved before completion.
+2026-09-19T17:55:20,ONB-1003,HUMAN REVIEW REQUIRED,onboarding_review_ONB-1003.docx,generated_pending_human_review,A source-data conflict requires reviewer judgment before completion.
+2026-09-19T21:50:54,ONB-1001,READY FOR HUMAN COMPLETION,onboarding_review_ONB-1001.docx,generated_pending_human_review,All required onboarding items passed deterministic checks.
+2026-09-19T21:50:54,ONB-1002,HUMAN REVIEW REQUIRED,onboarding_review_ONB-1002.docx,generated_pending_human_review,Missing required evidence must be resolved before completion.
+2026-09-19T21:50:54,ONB-1003,HUMAN REVIEW REQUIRED,onboarding_review_ONB-1003.docx,generated_pending_human_review,A source-data conflict requires reviewer judgment before completion.
+2026-09-19T22:11:52,ONB-1001,READY FOR HUMAN COMPLETION,onboarding_review_ONB-1001.docx,generated_pending_human_review,All required onboarding items passed deterministic checks.
+2026-09-19T22:11:52,ONB-1002,HUMAN REVIEW REQUIRED,onboarding_review_ONB-1002.docx,generated_pending_human_review,Missing required evidence must be resolved before completion.
+2026-09-19T22:11:52,ONB-1003,HUMAN REVIEW REQUIRED,onboarding_review_ONB-1003.docx,generated_pending_human_review,A source-data conflict requires reviewer judgment before completion.
+2026-09-19T22:20:57,ONB-1001,READY FOR HUMAN COMPLETION,onboarding_review_ONB-1001.docx,generated_pending_human_review,All required onboarding items passed deterministic checks.
+2026-09-19T22:20:57,ONB-1002,HUMAN REVIEW REQUIRED,onboarding_review_ONB-1002.docx,generated_pending_human_review,Missing required evidence must be resolved before completion.
+2026-09-19T22:20:57,ONB-1003,HUMAN REVIEW REQUIRED,onboarding_review_ONB-1003.docx,generated_pending_human_review,A source-data conflict requires reviewer judgment before completion.
