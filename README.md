@@ -45,6 +45,19 @@ Candidate ranking uses execution frequency, observed workload, actor breadth, co
 
 For manual validation, `src/spot_check.py` sampled four occurrences per candidate across sessions, copied the screenshots that fell inside each segment interval, and generated an index showing interval, event pattern, and applications. I inspected samples from `process_001`, final `process_003`, and `process_004`. This review rejected mixed/noisy groups and established the HR portal plus Word-checklist pattern behind the final onboarding scope. A selected-cluster sample that crossed from purchase-order work into onboarding was recorded as boundary spillover; the prototype intentionally targets only the stable onboarding-review portion.
 
+## Decision history and corrections
+
+This repository preserves the important corrections made during the project instead of presenting the final result as if it were obvious from the first run.
+
+1. **Timeline repair came before modelling.** Session chunks were stitched and all events sorted before calculating gaps or interaction transitions. Without this correction, raw event order would have created false timing and sequence features.
+2. **More boundary rules did not produce better boundaries.** Candidate union produced too many false positives; two-signal voting lost real but slightly time-offset signals; fixed-weight fusion and a standalone classifier exposed a strict-localisation versus broader-coverage trade-off. Those failures motivated local reranking around PELT anchors.
+3. **Noisy context extraction was corrected before interpreting clusters.** Application, title, browser host, and page route were separated so incidental window text could not dominate process similarity.
+4. **Raw segments were not mistaken for business executions.** Conservative adjacency and context-aware merging reduced 339 technical fragments to 264 inferred executions while preserving the underlying raw evidence.
+5. **The first attractive automation choice was rejected.** `process_001` had the largest apparent workload, but screenshot evidence showed several unrelated finance, purchasing, and contract activities. The earlier `process_002` idea was also withdrawn because it was fragmentary navigation rather than a complete workflow.
+6. **The prototype changed with the evidence.** An earlier lookup-to-document direction was replaced by onboarding verification only after final `process_003` showed a repeated HR case-review and Word-checklist pattern. The label `process_003` is the only final target name used in this repository.
+
+This sequence is the main result of the project: quantitative ranking was useful for prioritising what to inspect, but manual validation determined whether a proposed cluster was safe to treat as an automation opportunity.
+
 ## Why deterministic Python automation
 
 The selected boundary is structured retrieval, status checking, exception identification, and document generation. Deterministic Python rules were a better first implementation than an LLM agent, full RPA, or a workflow platform:
@@ -97,25 +110,11 @@ For the separate Step 1 submission, upload `outputs/segments.jsonl` with the fil
 - Production deployment requires authoritative HR rules, approved credentials, field mapping, API or UI integration, security review, and pilot measurement.
 - The prototype prepares evidence and exceptions; it does not make HR approval decisions.
 
-## Required submission identity — complete before submitting
+## Submission identity
 
 - Full name: **Dhruv Rohra**
 - University: **Indian Institute of Technology Goa**
 - Department or major: **Electrical Engineering**
 - Round 1 email: **dhruv.kamal.24042@iitgoa.ac.in**
 
-Keep the repository private and add only the collaborator accounts specified in the official company instructions.
-
-## Required private-repository collaborators
-
-Invite all of the following accounts after the private repository is pushed:
-
-- yasuhironose@imbesideyou.world
-- mamindla@imbesideyou.world
-- jayeshahire@imbesideyou.world
-- ashwingaikwad@imbesideyou.world
-- namansolanki@imbesideyou.world
-- kushakjafry@imbesideyou.world
-- rajeevkumar@imbesideyou.world
-
-Submissions are accepted only through the official Round 2 Google Form. Confirm that the repository is private, collaborator invitations are sent, and the exact Round 1 email is used in both this README and the form.
+The repository is private. The same Round 1 email is used here and in the submission form.
